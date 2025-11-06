@@ -9,5 +9,5 @@ In addition, this is only a demonstration project. In a real IFM project, one wo
 Thus, this demo is meant to illustrate how one might carry out certain aspects of the VM0045 process.
 
 ## Directory
-- **References/**: contains literature references cited in other modules.
-- **Module_01_filtering_demo_RI**: contains files related to a demonstration of part of the donor pool filtering methodology.
+- **/References/**: contains literature references cited in other modules.
+- **/Module_01_filtering_demo_RI/**: contains files related to a demonstration of part of the donor pool filtering methodology.
