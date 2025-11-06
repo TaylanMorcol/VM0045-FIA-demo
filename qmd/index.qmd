@@ -1,6 +1,7 @@
 ---
 title: "VM0045 FIA demo modules"
 format: html
+output-dir: ../docs
 ---
 
 This site hosts demonstration modules showing how US Forest Service Forest

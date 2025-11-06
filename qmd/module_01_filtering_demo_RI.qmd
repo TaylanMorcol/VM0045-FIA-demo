@@ -6,7 +6,7 @@ author:
     google_scholar: https://scholar.google.com/citations?user=OAvldLMAAAAJ&hl=en
     website: https://morcol.com 
 format: html
-output-dir: ../html
+output-dir: ../docs
 output-file: module_01_filtering_demo_RI.html
 ---
 
