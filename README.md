@@ -1,2 +1,13 @@
-# VM0045-FIA-demo
-Demonstrating how to use Forest Inventory and Analysis (FIA) data for "VM0045: Improved Forest Management Using Dynamic Matched Baselines from National Forest Inventories" (VM0045 version 1.2).
+# VM0045 FIA demo
+## Summary
+This repository contains a collection of modules demonstrating how US Forest Service FIA (Forest Inventory and Analysis) data can be used as part of Improved Forest Management (IFM) for forest carbon accounting. The modules follow the framework for laid out in VM0045, version 1.2 for developing dynamic, matched forest carbon baselines using FIA data. 
+
+This is not a complete treatment of VM0045; only certain aspects are covered. 
+
+In addition, this is only a demonstration project. In a real IFM project, one would have real forest inventory plots (i.e., project sample units) that are part of the IFM treatment, and these project sample units would be compared against a set of matched FIA plots. However, this demo does not use any data from a real IFM project. Instead, it uses a selection of FIA plots to stand in as _pseudo_ project sample units. 
+
+Thus, this demo is meant to illustrate how one might carry out certain aspects of the VM0045 process.
+
+## Directory
+- **References/**: contains literature references cited in other modules.
+- **Module_01_filtering_demo_RI**: contains files related to a demonstration of part of the donor pool filtering methodology.
