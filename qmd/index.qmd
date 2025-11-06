@@ -17,5 +17,5 @@ Forest Management (IFM) methodology (version 1.2).
 
 # Repository
 
-Repository: <https://github.com/metabolon1/VM0045-FIA-demo>
+Repository: <https://github.com/TaylanMorcol/VM0045-FIA-demo>
 
