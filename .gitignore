@@ -38,18 +38,15 @@ cache/
 
 # Quarto / knitr artifacts (source side)
 *.rmarkdown
-modules/*_cache/
-modules/*_files/
-modules/.quarto/
+qmd/*_cache/
+qmd/*_files/
+qmd/.quarto/
 
 # Draft documents
 /DRAFTS/
 
 # R Environment Variables
 .Renviron
-
-# pkgdown site
-#docs/
 
 # translation temp files
 po/*~
