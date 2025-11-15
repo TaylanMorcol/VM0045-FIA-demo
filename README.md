@@ -1,6 +1,6 @@
 # VM0045 FIA demo
 ## Summary
-This repository contains a collection of modules demonstrating how US Forest Service FIA (Forest Inventory and Analysis) data can be used as part of Improved Forest Management (IFM) for forest carbon accounting. The modules follow the framework for laid out in VM0045, version 1.2 for developing dynamic, matched forest carbon baselines using FIA data. 
+This repository serves as the source of the corresponding webpage: [https://taylanmorcol.github.io/VM0045-FIA-demo/](https://taylanmorcol.github.io/VM0045-FIA-demo/). It contains a collection of modules demonstrating how US Forest Service FIA (Forest Inventory and Analysis) data can be used as part of Improved Forest Management (IFM) for forest carbon accounting. The modules follow the framework for laid out in VM0045, version 1.2 for developing dynamic, matched forest carbon baselines using FIA data. 
 
 This is not a complete treatment of VM0045; only certain aspects are covered. 
 
