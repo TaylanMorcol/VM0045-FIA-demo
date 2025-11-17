@@ -18,7 +18,7 @@ toc: true
 # ---INTRODUCTION---
 In Module 1, working with a small set of FIA plots from Rhode Island, we saw how to apply some of the VM0045 donor pool selection criteria. Now, we turn our attention to the Southeastern US. Targetting a larger geographic area, we apply the full set of donor selection criteria to FIA plots in loblolly pine forests in ecological section 232J (i.e., Southern Atlantic Coastal Plains and Flatwoods section of the Outer Coastal Plain Mixed Forest province). 
 
-![Ecological section 232J (blue fill) interects four US states: North Carolina, South Carolina, Georgia, and Florida. Blue fill and yellow state boundaries added for clarity. Map excerpt from Cleland et al., (2007), https://doi.org/10.2737/WO-GTR-76D.](/images/Cleland_map_cropped_blue232J_yellowStateLinesChatGPT_20251116.png){width=50%}
+![Ecological section 232J (blue fill) interects four US states: North Carolina, South Carolina, Georgia, and Florida. Blue fill and yellow state boundaries added for clarity. Map excerpt from Cleland et al., (2007), https://doi.org/10.2737/WO-GTR-76D.](/images/Cleland_map_cropped_blue232J_yellowStateLinesChatGPT_20251116.png){width=70%}
 
 As seen in the map, section 232J intersects four states, each of which is substantially larger than Rhode Island. Thus, this module deals with much larger data files than the first module. As we'll see, this requires some modifications to how we download, read in, and process the FIA data. These modifications go beyond what is presented in the [rFIA big data guide](https://doserlab.com/files/rfia/articles/bigdata), which is only concerned with unit-level estimation. By contrast, this module deals with more granular, plot-level estimation.
 
@@ -26,7 +26,7 @@ Because of the added data management issues and because of the more complete tre
 
 Thus, this module approximates how one might approach generating a composite baseline for an IFM project involving loblolly pine plantings.
 
-## Dr. Kincaid's $169 laptop challenge
+## Dr. Kincaid's $169 Laptop Challenge
 Before we jump into coding, I want to tell you about Dr. Dwight Kincaid. I learned the fundamentals of coding from Dr. Kincaid, one of my favorite professors of all time. In his biostatistics/R class in 2018, Dr. Kincaid would often point out that he was doing all of his R demos on a $169 laptop. That thing must've had 4 GB RAM max. He wanted to teach us that one didn't necessarily need fancy, high-powered computers to run large analyses if one learned to write efficient code. 
 
 Although the laptop I'm currently using has 12 GB RAM (plus 9 GB swap), my aim is that the code in this module could still run on Dr. Kincaid's $169 laptop. I do this for two reasons. First, I want this code to be accessible to a wider range of users. Second, it's a good habit to get into for scaling to even larger datasets.
