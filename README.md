@@ -14,5 +14,6 @@ HTML versions of the modules can be found [here](https://taylanmorcol.github.io/
 
 ## Directory structure
 - **/**: (root) all `.qmd` source files (in addition to normal root files)
+- **/data**: processed data from modules
 - **/docs/**: all files for GitHub webpage (including images referenced in `.qmd` files)
 - **/refs/**: literature references related to modules
