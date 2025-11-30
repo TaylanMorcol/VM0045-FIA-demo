@@ -27,6 +27,3 @@ Personal webpage: <https://morcol.com>
 LinkedIn: <https://www.linkedin.com/in/taylan-morcol>
 
 Google Scholar: <https://scholar.google.com/citations?user=OAvldLMAAAAJ&hl=en>
-
-# Disclaimer
-This material was prepared on my own personal time and is offered in my personal capacity only. It does not represent the views of, nor is it endorsed by, any current or past employer.

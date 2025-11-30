@@ -84,11 +84,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">Table of contents</h2>
    
   <ul>
-  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">—INTRODUCTION—</a>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">INTRODUCTION</a>
   <ul class="collapse">
   <li><a href="#dr.-kincaids-169-laptop-challenge" id="toc-dr.-kincaids-169-laptop-challenge" class="nav-link" data-scroll-target="#dr.-kincaids-169-laptop-challenge">Dr.&nbsp;Kincaid’s $169 Laptop Challenge</a></li>
   </ul></li>
-  <li><a href="#r-pipeline" id="toc-r-pipeline" class="nav-link" data-scroll-target="#r-pipeline">—R PIPELINE—</a>
+  <li><a href="#r-pipeline" id="toc-r-pipeline" class="nav-link" data-scroll-target="#r-pipeline">R PIPELINE</a>
   <ul class="collapse">
   <li><a href="#load-packages" id="toc-load-packages" class="nav-link" data-scroll-target="#load-packages">Load packages</a></li>
   <li><a href="#download-data-from-fiadb" id="toc-download-data-from-fiadb" class="nav-link" data-scroll-target="#download-data-from-fiadb">Download data from FIADB</a></li>
@@ -111,13 +111,18 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   </ul></li>
   <li><a href="#save-filtered-fia-database" id="toc-save-filtered-fia-database" class="nav-link" data-scroll-target="#save-filtered-fia-database">Save Filtered FIA Database</a></li>
   </ul></li>
-  <li><a href="#conclusion" id="toc-conclusion" class="nav-link" data-scroll-target="#conclusion">—CONCLUSION—</a></li>
-  <li><a href="#appendix-using-generative-ai" id="toc-appendix-using-generative-ai" class="nav-link" data-scroll-target="#appendix-using-generative-ai">—APPENDIX: USING GENERATIVE AI—</a>
+  <li><a href="#conclusion" id="toc-conclusion" class="nav-link" data-scroll-target="#conclusion">CONCLUSION</a></li>
+  <li><a href="#appendix-using-generative-ai-tools" id="toc-appendix-using-generative-ai-tools" class="nav-link" data-scroll-target="#appendix-using-generative-ai-tools">APPENDIX: USING GENERATIVE AI TOOLS</a>
   <ul class="collapse">
   <li><a href="#code-writing" id="toc-code-writing" class="nav-link" data-scroll-target="#code-writing">Code Writing</a></li>
   <li><a href="#debugging" id="toc-debugging" class="nav-link" data-scroll-target="#debugging">Debugging</a></li>
   <li><a href="#troubleshooting" id="toc-troubleshooting" class="nav-link" data-scroll-target="#troubleshooting">Troubleshooting</a></li>
-  <li><a href="#image-manipulation" id="toc-image-manipulation" class="nav-link" data-scroll-target="#image-manipulation">Image Manipulation</a></li>
+  <li><a href="#image-manipulation" id="toc-image-manipulation" class="nav-link" data-scroll-target="#image-manipulation">Image Manipulation</a>
+  <ul class="collapse">
+  <li><a href="#trial-1" id="toc-trial-1" class="nav-link" data-scroll-target="#trial-1">trial #1</a></li>
+  <li><a href="#trial-2" id="toc-trial-2" class="nav-link" data-scroll-target="#trial-2">trial #2</a></li>
+  <li><a href="#trial-3" id="toc-trial-3" class="nav-link" data-scroll-target="#trial-3">trial #3</a></li>
+  </ul></li>
   </ul></li>
   </ul>
 </nav>
@@ -158,7 +163,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p><a href="index.html">← Back to module index</a></p>
 <p><strong>Disclaimer:</strong> This material was prepared on my own personal time and is offered in my personal capacity only. It does not represent the views of, nor is it endorsed by, any current or past employer.</p>
 <section id="introduction" class="level1">
-<h1>—INTRODUCTION—</h1>
+<h1>INTRODUCTION</h1>
 <p>In Module 1, working with a small set of FIA plots from Rhode Island, we saw how to apply some of the VM0045 donor pool selection criteria. Now, we turn our attention to the Southeastern US. Targetting a larger geographic area, we apply the full set of donor selection criteria to FIA plots in loblolly pine forests in ecological section 232J (i.e., Southern Atlantic Coastal Plains and Flatwoods section of the Outer Coastal Plain Mixed Forest province).</p>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -176,7 +181,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 </section>
 <section id="r-pipeline" class="level1">
-<h1>—R PIPELINE—</h1>
+<h1>R PIPELINE</h1>
 <section id="load-packages" class="level2">
 <h2 class="anchored" data-anchor-id="load-packages">Load packages</h2>
 <p>In addition to some of the packages used in Module 1, Module 2A also uses <code>callr</code>. This allows us to run isolated, one-off sessions of R and pass the output to the current working session. In turn, this helps with memory management issues that come with dealing with RAM intensive processes.</p>
@@ -878,12 +883,12 @@ ratio of file sizes (.rds / in-memory): 0.21</code></pre>
 </section>
 </section>
 <section id="conclusion" class="level1">
-<h1>—CONCLUSION—</h1>
+<h1>CONCLUSION</h1>
 <p>In this module, we scaled up from the Rhode Island toy example from Module 1 to something closer to a real IFM use case: loblolly pine plantations in ecological section 232J, spanning North Carolina, South Carolina, Georgia, and Florida. That brought in a bigger, messier FIADB footprint and forced us to think more seriously about RAM, disk, and workflow. We walked through how to constrain <code>getFIA()</code> to only the tables that matter for <code>carbon()</code>, download them to disk instead of straight into RAM, and used Dr.&nbsp;Kincaid’s “$169 laptop” mindset as a guiding principle to write code and design data structures that can still run on a reasonably modest machine.</p>
 <p>From there, the focus shifted to paring the data down to what <code>carbon()</code> and <code>print()</code> truly need and to what VM0045 actually asks for. We built a tiny, one-row-per-table test database, ran a leave-one-out experiment over every column to identify the minimal set required by both functions, and then used that list of required columns to read in the full four-state database with only those fields. After resolving some quirks with how <code>readFIA()</code> passes arguments through to <code>fread()</code>, we loaded the reduced FIADB, applied the loblolly/section/plantation filters and state-specific cycle filters via PLT_CN, and compared sizes and row counts before and after filtering. Sanity checks on maps and key fields confirmed that the filtered object looks like what we expected. We finish by saving this smaller, compressed .rds version of the database so that Module 2B can pick up from a clean, tractable starting point.</p>
 </section>
-<section id="appendix-using-generative-ai" class="level1">
-<h1>—APPENDIX: USING GENERATIVE AI—</h1>
+<section id="appendix-using-generative-ai-tools" class="level1">
+<h1>APPENDIX: USING GENERATIVE AI TOOLS</h1>
 <p>Throughout this project, I have been experimenting with generative AI tools (mostly ChatGPT) to help me accomplish the work. I want to share some reflections on my experience so far.</p>
 <section id="code-writing" class="level2">
 <h2 class="anchored" data-anchor-id="code-writing">Code Writing</h2>
@@ -904,15 +909,23 @@ ratio of file sizes (.rds / in-memory): 0.21</code></pre>
 <section id="image-manipulation" class="level2">
 <h2 class="anchored" data-anchor-id="image-manipulation">Image Manipulation</h2>
 <p>Aside from coding, I also used AI to help with image manipulation. In the original version of the Cleland map, the state boundaries are faint and hard to see. Tracing over them by hand proved a tedious and error-prone task, which I quickly abandoned. So I turned to AI.</p>
+<section id="trial-1" class="level3">
+<h3 class="anchored" data-anchor-id="trial-1">trial #1</h3>
 <p>As a first attempt, I simply gave ChatGPT the image and asked it to trace over the state boundaries. It traced over some lines, but not the state boundaries. I went back and forth with it a few times to try to clarify, but it still couldn’t accomplish the task.</p>
 <p>I also tried the same thing with Gemini, Perplexity, and Claude. Gemini kept going through a loop of dropping the image and returning back to the original prompt window. This may be a glitch, I’m not sure. Perplexity, like ChatGPT, returned an image with some lines traced over, but not the state lines.</p>
 <p>Claude initially refused to produce an image, saying it didn’t know what projection was being used, etc. Even though I told it to just trace the dashed lines, it wouldn’t do it. It was encouraging to me that it refused to just take a stab at it. In the end, it said it wasn’t confident in being able to perform the task to specifications, so it instead designed a bespoke HTML-based tool to allow me to trace the lines myself. Kind of cool that it can do this, but ultimately not helpful.</p>
+</section>
+<section id="trial-2" class="level3">
+<h3 class="anchored" data-anchor-id="trial-2">trial #2</h3>
 <p>As second attempt, I decided to make the prompt more specific and try one-shot learning by providing an example. For each of the four chatbots, I provided the same two PNG images along with the following prompt:</p>
 <blockquote class="blockquote">
 <p>You are an expert, detail oriented graphical editor. Your task is to trace over all of the dash-dot-dash lines in the first image with a thicker, yellow line. I have provided the second image as an example of what I want to accomplish, but only a small portion of all the dash-dot-dash lines have been traced over in this example. I want you to trace over all such lines in the image in this way.</p>
 </blockquote>
 <p>ChatGPT again traced over lines that weren’t state boundaries and also distored the image in other ways. Claude apologized, saying it couldn’t directly edit raster images and gave me detailed instructions about how to accomplish the task myself (again, not helpful). Gemini did the same glitchy loop as before. And Perplexity traced the section/subsection boundaries rather than the state boundaries.</p>
-<p>I decided to give it one more try. This time, I provided a vector/SVG file of the map as the raw image, the same raster/PNG as the example, and this prompt:</p>
+</section>
+<section id="trial-3" class="level3">
+<h3 class="anchored" data-anchor-id="trial-3">trial #3</h3>
+<p>I decided to give it one more try. This time, I provided a vector/SVG file–rather than a raster-type file–of the raw map image. My hope was that, because the boundary lines are explicitly defined in a vector image, the AI tool would have an easier time identifying these boundaries. I also provided the same raster/PNG example image as before, along with this prompt:</p>
 <blockquote class="blockquote">
 <p>You are an expert, detail oriented graphical editor. The first image I have provided is a vector image of a map of the entire lower 48 US. The second image is a working example to help guide your work. Staring with the first image, crop it to the frame of the second image. (side note: the second image has an area filled in with blue that does not appear in the first image and a small section of a yellow line, but otherwise it was derived directly from the first image). Then trace of “all” of the dash-dot-dash lines, as I have begun to do in the example image. Then give me the output as both raster and vector images, if possible. Otherwise, give output as whatever you are able to do.</p>
 </blockquote>
@@ -923,6 +936,7 @@ ratio of file sizes (.rds / in-memory): 0.21</code></pre>
 <p>This is great. All the state lines are exactly where I want them to be. Can you also add the blue shading back in from my example image?</p>
 </blockquote>
 <p>It was able to add the blue shading back in, but the yellow lines got fragmented and also extended to other, non-state boundaries, making the map unusable. So I ended up adding the blue shading back in by hand using GIMP’s fuzzy select tool.</p>
+</section>
 </section>
 </section>
 

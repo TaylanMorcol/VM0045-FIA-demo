@@ -15,7 +15,7 @@ toc: true
 
 **Disclaimer:** This material was prepared on my own personal time and is offered in my personal capacity only. It does not represent the views of, nor is it endorsed by, any current or past employer.
 
-# ---INTRODUCTION---
+# INTRODUCTION
 In Module 1, working with a small set of FIA plots from Rhode Island, we saw how to apply some of the VM0045 donor pool selection criteria. Now, we turn our attention to the Southeastern US. Targetting a larger geographic area, we apply the full set of donor selection criteria to FIA plots in loblolly pine forests in ecological section 232J (i.e., Southern Atlantic Coastal Plains and Flatwoods section of the Outer Coastal Plain Mixed Forest province). 
 
 ![Ecological section 232J (blue fill) interects four US states: North Carolina, South Carolina, Georgia, and Florida. Blue fill and yellow state boundaries added for clarity. Map excerpt from Cleland et al., (2007), https://doi.org/10.2737/WO-GTR-76D.](/images/Cleland_map_cropped_blue232J_yellowStateLinesChatGPT_20251116.png){width=70%}
@@ -31,7 +31,7 @@ Before we jump into coding, I want to tell you about Dr. Dwight Kincaid. I learn
 
 Although the laptop I'm currently using has 12 GB RAM (plus 9 GB swap), my aim is that the code in this module could still run on Dr. Kincaid's $169 laptop. I do this for two reasons. First, I want this code to be accessible to a wider range of users. Second, it's a good habit to get into for scaling to even larger datasets.
 
-# ---R PIPELINE---
+# R PIPELINE
 ## Load packages
 In addition to some of the packages used in Module 1, Module 2A also uses `callr`. This allows us to run isolated, one-off sessions of R and pass the output to the current working session. In turn, this helps with memory management issues that come with dealing with RAM intensive processes.
 
@@ -660,12 +660,12 @@ cat("ratio of file sizes (.rds / in-memory):",
     round(file.info(path_FIABD_f)$size/as.numeric(object.size(FIADB_f)), 2))
 ```
 
-# ---CONCLUSION---
+# CONCLUSION
 In this module, we scaled up from the Rhode Island toy example from Module 1 to something closer to a real IFM use case: loblolly pine plantations in ecological section 232J, spanning North Carolina, South Carolina, Georgia, and Florida. That brought in a bigger, messier FIADB footprint and forced us to think more seriously about RAM, disk, and workflow. We walked through how to constrain `getFIA()` to only the tables that matter for `carbon()`, download them to disk instead of straight into RAM, and used Dr. Kincaid’s “$169 laptop” mindset as a guiding principle to write code and design data structures that can still run on a reasonably modest machine.
 
 From there, the focus shifted to paring the data down to what `carbon()` and `print()` truly need and to what VM0045 actually asks for. We built a tiny, one-row-per-table test database, ran a leave-one-out experiment over every column to identify the minimal set required by both functions, and then used that list of required columns to read in the full four-state database with only those fields. After resolving some quirks with how `readFIA()` passes arguments through to `fread()`, we loaded the reduced FIADB, applied the loblolly/section/plantation filters and state-specific cycle filters via PLT_CN, and compared sizes and row counts before and after filtering. Sanity checks on maps and key fields confirmed that the filtered object looks like what we expected. We finish by saving this smaller, compressed .rds version of the database so that Module 2B can pick up from a clean, tractable starting point.
 
-# ---APPENDIX: USING GENERATIVE AI---
+# APPENDIX: USING GENERATIVE AI TOOLS
 Throughout this project, I have been experimenting with generative AI tools (mostly ChatGPT) to help me accomplish the work. I want to share some reflections on my experience so far.
 
 ## Code Writing
@@ -688,19 +688,22 @@ Another issue was getting the geographic proportions to display accurately in th
 ## Image Manipulation
 Aside from coding, I also used AI to help with image manipulation. In the original version of the Cleland map, the state boundaries are faint and hard to see. Tracing over them by hand proved a tedious and error-prone task, which I quickly abandoned. So I turned to AI.
 
+### trial #1
 As a first attempt, I simply gave ChatGPT the image and asked it to trace over the state boundaries. It traced over some lines, but not the state boundaries. I went back and forth with it a few times to try to clarify, but it still couldn't accomplish the task. 
 
 I also tried the same thing with Gemini, Perplexity, and Claude. Gemini kept going through a loop of dropping the image and returning back to the original prompt window. This may be a glitch, I'm not sure. Perplexity, like ChatGPT, returned an image with some lines traced over, but not the state lines.
 
 Claude initially refused to produce an image, saying it didn't know what projection was being used, etc. Even though I told it to just trace the dashed lines, it wouldn't do it. It was encouraging to me that it refused to just take a stab at it. In the end, it said it wasn't confident in being able to perform the task to specifications, so it instead designed a bespoke HTML-based tool to allow me to trace the lines myself. Kind of cool that it can do this, but ultimately not helpful.
 
+### trial #2
 As second attempt, I decided to make the prompt more specific and try one-shot learning by providing an example. For each of the four chatbots, I provided the same two PNG images along with the following prompt:
 
 > You are an expert, detail oriented graphical editor. Your task is to trace over all of the dash-dot-dash lines in the first image with a thicker, yellow line. I have provided the second image as an example of what I want to accomplish, but only a small portion of all the dash-dot-dash lines have been traced over in this example. I want you to trace over all such lines in the image in this way.
 
 ChatGPT again traced over lines that weren't state boundaries and also distored the image in other ways. Claude apologized, saying it couldn't directly edit raster images and gave me detailed instructions about how to accomplish the task myself (again, not helpful). Gemini did the same glitchy loop as before. And Perplexity traced the section/subsection boundaries rather than the state boundaries. 
 
-I decided to give it one more try. This time, I provided a vector/SVG file of the map as the raw image, the same raster/PNG as the example, and this prompt:
+### trial #3
+I decided to give it one more try. This time, I provided a vector/SVG file--rather than a raster-type file--of the raw map image. My hope was that, because the boundary lines are explicitly defined in a vector image, the AI tool would have an easier time identifying these boundaries. I also provided the same raster/PNG example image as before, along with this prompt:
 
 > You are an expert, detail oriented graphical editor. The first image I have provided is a vector image of a map of the entire lower 48 US. The second image is a working example to help guide your work. Staring with the first image, crop it to the frame of the second image. (side note: the second image has an area filled in with blue that does not appear in the first image and a small section of a yellow line, but otherwise it was derived directly from the first image). Then trace of "all" of the dash-dot-dash lines, as I have begun to do in the example image. Then give me the output as both raster and vector images, if possible. Otherwise, give output as whatever you are able to do.
 
