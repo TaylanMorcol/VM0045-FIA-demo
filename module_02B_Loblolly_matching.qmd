@@ -1,0 +1,580 @@
+---
+title: "MODULE 2B - "
+date: 2025-11-30
+author: 
+  - name: Taylan Morcol
+    google_scholar: https://scholar.google.com/citations?user=OAvldLMAAAAJ&hl=en
+    website: https://morcol.com 
+    linkedin: https://www.linkedin.com/in/taylan-morcol
+format: html
+output-file: module_02B_Loblolly_matching.html
+---
+
+
+MODULE UNDER CONSTRUCTION...
+
+
+
+
+
+[← Back to module index](index.html)
+
+**Disclaimer:** This material was prepared on my own personal time and is offered in my personal capacity only. It does not represent the views of, nor is it endorsed by, any current or past employer.
+
+# INTRODUCTION
+
+
+# R PIPELINE
+
+## Load Packages
+```{r, message=FALSE}
+# packages from Module 01
+library(rFIA)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(maps)
+
+# packages new to this module
+library(parallel)
+library(callr)
+library(optmatch)
+library(geosphere)
+```
+
+## Load FIA Data
+In Module 2A, we filtered the FIA database down to just the tables, columns, and rows needed for carbon calculations, and we saved this to a .rds object. Now we load that object again so we can pick up where we left off.
+
+```{r}
+# specify file path (CHANGE AS NEEDED FOR YOUR COMPUTER)
+path_FIABD_f <- "./data/Mod02A_FIADB_f.rds"
+
+# load .rds file as object
+FIADB_f <- readRDS(path_FIABD_f)
+```
+
+Simply printing the entire FIADB object is would be quite lengthy, so instead let's just inspect the first 40 lines of the printed output to see what we're working with.
+```{r}
+# view first n rows of FIADB_f printing output
+n <- 40
+   FIADB_f %>% # print the object...
+   capture.output() %>% # capture the terminal output...
+   head(n = n) %>% # print only first n rows of output...
+   cat(sep = "\n") # concatenate and separate each elemnt by newline 
+```
+
+Next, let'd load the FIADB reference tables, which will be used a bit later. This is a fairly small download (4.5 MB).
+```{r}
+REF <- getFIA("REF")
+```
+
+## Carbon Calculations
+Because of all the filtering we did in Module 2A, our FIADB is now small enough that running `carbon()` on it does not require any special memory management steps. The calculations complete in less than one second on my laptop. 
+```{r}
+cc <- carbon(
+   db = FIADB_f, # raw FIADB data object
+   byPlot = TRUE,  # do calculations on per-plot basis
+   byPool = FALSE # do NOT split carbon calcs by IPCC forest carbon pool
+)
+```
+
+We see that the output of the carbon calculations is a tibble with 249 rows (one for each plot) and 5 columns.
+```{r}
+str(cc) #examine structure
+```
+
+The size of the carbon table is about 1/70th the size of our filtered FIADB object.
+```{r}
+#| label: size_compare_FIADB_cc
+#| results: "hold"
+print(object.size(FIADB_f), units = "KB")
+print(object.size(cc), units = "KB")
+```
+
+## Sample Units
+Before we move into baseline matching, we need to pick a set of plots to serve as our sample units (i.e., the long-term monitoring plots within our imaginary IFM project). For this demo, six plots seems like a decent sample size. And since this is a demo project, we can pick any plots we like. 
+
+One way to make this selection is to first plot the map of points and identify a cluster of six plots that are fairly close together. Next, we can use `locator()` to determine the x- and y-coordinates of the top-left and bottom-right corners of an imaginary rectangle bounding these six plots. Finally, we can filter the list of plot CNs down to only the those bounded by the coordinates of this rectangle. Because the `locator()` function requires manually clicking on a plot, it is not practical to demonstrate this process in this module. But the code to reproduce this process is provided below.
+```{r}
+#| label: locate_sample_units
+#| eval: false
+#| echo: true
+# draw all plot locations
+plot(x = lon, y = lat, cex = 0.8)
+map("state", add = TRUE) # add state boundaries
+
+# click on bottom-left & top-right corners of imaginary 
+#   rectangle bounding desired points on map
+coords <- locator(n = 2)
+
+FIADB_f$PLOTGEOM %>% 
+  filter(LON > coords$x[1] & 
+         LON < coords$x[2] & 
+         LAT > coords$y[1] & 
+         LAT < coords$y[2]) %>% 
+  select(CN) %>%
+  unlist()
+```
+
+For simplicity, we will explicitly define the plot CNs for the six sample unit plots as follows:
+```{r}
+# choose 6 plots to serve as sample units, designated by their PLT_CN's
+su_plt_cn <- c(708740719290487, 559255068126144, 708740521290487,  
+               708740567290487, 809204032290487, 809204033290487) 
+
+names(su_plt_cn) <- paste0("SU", seq_along(su_plt_cn))
+```
+
+Next, we visualize the chosen plots in context of all the plots in our donor pool.
+```{r}
+# indices of sample unit plots
+i <- which(FIADB_f$PLOTGEOM$CN %in% su_plt_cn)
+
+lat <- FIADB_f$PLOTGEOM$LAT # latitudes
+lon <- FIADB_f$PLOTGEOM$LON # longitudes
+
+# draw all plot locations
+plot(x = lon, y = lat, cex = 0.6, col = "grey50",
+     asp = 1 / cos(mean(lat, na.rm=TRUE) * pi/180))
+
+# add state boundaries
+map("state", add = TRUE)
+
+# highlight sample unit plots in colors
+points(lon[i], lat[i], pch=21, 
+       bg = rainbow(length(i)), col = "black")
+```
+
+## Covariates For Matching
+With our sample units chosen, we now move on to gathering the covariates we need for VM0045 baseline matching. These covariates are later used to calculate Mahalanobis distances between each sample unit and each plot in the donor pool. Some of these covariates are variables already found in FIADB tables, while others need to be derived from FIADB variables. 
+
+The covariates--which are listed in VM0045, v1.2, Table A1.1--come from the following FIADB tables:
+
+- PLOTGEOM
+  - Distance to sample (derived from `LAT` and `LON`), in kilometers
+
+- COND
+  - Standage age (`STDAGE`), in years
+  - Site productivity class code (`SITECLCD`), one of seven bins/categories according to productivity in feet<sup>3</sup>/acre/year
+
+- PLOT
+  - Elevation (`ELEV`), in feet
+  - Slope (`SLOPE`), as percentage
+  - Horizontal distance to improved road (`RDDISTCD`), in one of nine bins/categories of increasing distance
+
+- TREE + REF_SPECIES
+  - Regeneration stocking & Commercial stocking (derived from TREE `DIA` and REF_SPECIES `WOOD_SPGR_GREENVOL_DRYWT`), dimensionless variables ranging [0, 1]
+  - Quadratic mean diameter [QMD] (derived from TREE `DIA`), in inches
+
+### calculate distances to sample units
+For each sample unit, we need to calculate the geographic distance to all plots in the donor pool. 
+
+```{r}
+pg <- FIADB_f$PLOTGEOM # 
+
+# calculate geographic distances btw sample units and donor pool plots
+dist_to_su <- sapply(
+  su_plt_cn, # for each plot CN in sample units list
+  function(x){distGeo( # calculate geodesic distance between...
+    p1 = pg[pg$CN == x, c("LON", "LAT")], # sample unit...
+    p2 = pg[,c("LON", "LAT")] # and each donor pool plot 
+    ) / 1000 # end distGeo(); convert meters to km
+  } # end function()
+) %>% # end sapply()
+  as_tibble() %>%
+  setNames(paste0("dist_km_to_", names(su_plt_cn))) %>%
+  mutate(PLT_CN = pg$CN) 
+```
+
+### calculate stocking covariates
+For each plot CN, we need to calculate three covariates from the TREE table: regeneration stocking, commercial stocking, and quadratic mean diameter.
+
+Regeneration stocking is a dimensionless variables with values ranging [0, 1], defined by VM0045 (v1.2, Table A.1.1) as:
+> Total relative density per acre (Ducey and Knapp 2010<sup>32</sup>) of all live trees ≥1” and <5” dbh, of commercial species from FIA’s SEEDLING and TREE tables. Commercial species are defined as those not from species groups 23, 43, or 48 (see FIA Database User Guide Appendix E). Relative density (RD) per acre is calculated for each individual as RD<sub>per acre</sub> = 2.47 × (0.00015 + (0.00218 × SpecificGravity Species )) × (dbh/10)<sup>1.6</sup>
+
+In other words, we're dealing with saplings (i.e., trees between 1 and 5 inches DBH). Although the VM0045 definition refers to the SEEDLING table, to my knowledge, all sapling data is recorded in the TREE table. 
+
+Let's first grab specific gravity numbers from REF_SPECIES, since we'll also be using them to calculate commercial stocking.
+```{r}
+spgr <- 
+  REF$REF_SPECIES %>% # get specific gravities
+  select(SPCD, spec_grav = WOOD_SPGR_GREENVOL_DRYWT) %>%
+  tibble()
+```
+
+Now, we calculate regeneration stocking.
+```{r}
+rs <- 
+   FIADB_f$TREE %>% 
+   select(PLT_CN, DIA, SPCD, SPGRPCD, STATUSCD) %>%
+   filter(!SPGRPCD %in% c(23, 43, 48) & # exclude non-commercial species
+          DIA >= 1 & DIA < 5 & # include only saplings
+          STATUSCD == 1) %>% # include only live trees   
+   left_join(spgr, by = "SPCD") %>%
+   mutate(RD_tree = 2.47 * (0.00015 + (0.00218 * spec_grav)) * ((DIA/10)^1.6)) %>%
+   group_by(PLT_CN) %>%
+   summarize(RD_regen = sum(RD_tree, na.rm = TRUE)) %>%
+   tibble()
+```
+
+Next, we calculate commercial stocking. The definition provided in VM0045 (v1.2, Table A1.1) has some similarities and some differences relative to the definition for regeneration stocking:
+> Total relative density per acre (Ducey and Knapp 2010) of live trees of commercial
+species ≥5” dbh, with at least one sound, straight eight-foot section. Commercial species are defined as above. ... Derived from FIADB data, uses TREECLCD to identify
+trees with requisite form characteristics.
+
+So, we're still dealing with live trees of commercial species and we're still using the same equation for relative density. But now, instead of saplings, we're dealing with larger trees (DBH ≥ 5”), and there's the extra condition about having at least one merchantable, 8' section section, which is addressed by `TREECLCD`. 
+
+```{r}
+cs <- 
+  FIADB_f$TREE %>% 
+  select(PLT_CN, DIA, SPCD, SPGRPCD, STATUSCD, TREECLCD) %>%
+  filter(!SPGRPCD %in% c(23, 43, 48) & # exclude non-commercial species
+         DIA >= 5 & # include only trees of at least 5" DBH
+         STATUSCD == 1 & # include only live trees
+         TREECLCD == 2) %>% # include only trees w/ at least one solid 8-foot section
+  left_join(spgr, by = "SPCD") %>%
+  mutate(RD_tree = 2.47 * (0.00015 + (0.00218 * spec_grav)) * ((DIA/10)^1.6)) %>%
+  group_by(PLT_CN) %>%
+  summarize(RD_comm = sum(RD_tree, na.rm = TRUE)) %>%
+  tibble()
+```
+
+### calculating quadratic mean diameter
+The last covariate we need to derive is quadratic mean diameter (QMD). VM0045 defines QMD as:
+> diameter of tree with average basal area (considering only live trees >5” dbh)
+
+The formula for QMD is relatively straighforward: for each plot, QMD is the square root of the mean of the squared diameters of all live trees of at least 5" DBH. We calculate it below. 
+
+```{r}
+# function to calculate quadratic mean diameter
+QMD_fun <- function(x){sqrt(mean(x^2))}
+
+qmd <- 
+  FIADB_f$TREE %>%
+  select(PLT_CN, DIA, STATUSCD) %>%
+  filter(DIA >=5 & STATUSCD == 1) %>%
+  group_by(PLT_CN) %>%
+  summarize(qmd = QMD_fun(DIA))
+```
+
+### number of unique plots reduced
+One thing to note is that the number of plot CNs in the regeneration stocking (n = 192), commercial stocking (n = 214), and quadratic mean diameter (n = 218) outputs are all less than the number of unique plot CNs in the filtered tree table (n = 249) from which these covariates were derived.
+
+```{r}
+# number of unique plot CNs in filtered tree table
+length(unique(FIADB_f$TREE$PLT_CN)) 
+
+# number of unique plot CNs in regeneration stocking output
+nrow(rs) 
+
+# number of unique plot CNs in commercial stocking output
+nrow(cs)
+
+# number of unique plot CNs in QMD output
+nrow(qmd)
+```
+
+These reduced plot CN counts are a result of the filters applied to the tree table variables (i.e., species group, diameter, tree status, tree class code) prior to making the calculations, leaving some plots without any eligible trees. 
+
+### join covariates to carbon table
+
+
+
+
+
+
+
+
+So, the next set of steps is to merge all of the necessary variables to the carbon table and derive the additional covariates. These variables are found across four tables that are already contained within `FIADB_f`.
+
+So the first step is to join those four tables to the carbon table and select the columns we need.
+```{r}
+ccm <- cc %>%
+   inner_join(FIADB_f$PLOTGEOM, 
+              by = c("PLT_CN" = "CN"), 
+              suffix = c("", ".y")) %>%
+   inner_join(FIADB_f$COND,
+              by = "PLT_CN", 
+              suffix = c("", ".y")) %>%
+   inner_join(FIADB_f$PLOT,
+              by = c("PLT_CN" = "CN"), 
+              suffix = c("", ".y")) %>%
+   select(PLT_CN, LON, LAT, STDAGE, SITECLCD, 
+          ELEV, SLOPE, RDDISTCD, CARB_ACRE)
+ccm
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+
+
+tbl_names <- names(req_cols_plus)
+
+FIADB <- setNames(lapply(tbl_names, function(tbl) {
+  parts <- lapply(states, function(state) {
+    f <- paste0(state, "_", tbl, ".csv")
+    fread(f, select = req_cols_plus[[tbl]])
+  })
+  data.table::rbindlist(parts, use.names = TRUE, fill = TRUE)
+}), tbl_names)
+```
+
+
+
+
+
+
+## Carbon/acre calculations
+Next, we use functions to calculate carbon/acre for each plot visit in our dataset. Again, this is made more complicated by the larger file sizes. Even though the size of the final table of carbon values returned by `carbon()` is farily manageable for RAM, the process of doing the calculations ties up considerably more RAM to complete. And on my computer, R does not release that RAM once it's finished with the calculations, not even after running `gc()`.
+
+To overcome this, we use `callr::r`. This function (1) initializes a new, one-off session of R, (2) runs processes within that session, (3) passes results back to the main session, and (4) terminates the one-off session. When the one-off session terminates, it releases all of its RAM back to the operating system.
+
+We also make use of parallel processing with `carbon()` to speed up the calculations.
+
+```{r}
+#| label: carbon_calculations_parallel
+#| echo: true
+#| eval: false
+
+# find total number of cores on computer
+total_cores <- detectCores()
+
+# determine number of cores to use for calculations 
+cores <- case_when(total_cores > 1 ~ total_cores - 1, # if multiple cores, use 1 less than total
+                   TRUE ~ 1)                          # otherwise, use 1 core
+
+# timestamp at START of carbon calculations
+t0 <- Sys.time()
+
+cc <- callr::r(
+  function(dl_dir, cores) {
+    library(rFIA) 
+    #
+    dbp <- readFIA(dir = dl_dir,
+                   inMemory = FALSE)
+    carbon(dbp, 
+           byPlot = TRUE, 
+           byPool = FALSE, 
+           nCores = cores)
+  },
+  args = list(dl_dir = dl_dir, cores = cores)
+)
+
+# timestamp at END of carbon calculations
+t1 <- Sys.time()
+
+# time difference using PARALLEL processing
+t1 - t0
+
+print(object.size(cc), units = "MB") # memory usage in MB
+```
+
+The carbon calculations above took about 30 seconds on my laptop, using 7 cores. The one-off R session was using up to 6 GB of RAM for the calculations, but the table of carbon calculations that it returned was only 14 MB in size. I had to close all non-essential processes on my laptop to free up enough RAM. And if those 6 GB RAM were not returned back to the OS afterwards, I would not have enough memory to continue the pipeline. That's the advantage of using `callr::r`.
+
+Next, for comparison, I ran the same call but using only 1 core (see below). It completed in 42 seconds, vs 30 seconds when using 7 cores. Not too much of a difference.
+
+```{r}
+#| label: carbon_calculations_serial
+#| echo: true
+#| eval: false
+
+# timestamp at START of carbon calculations
+t0 <- Sys.time()
+
+ccs <- callr::r(
+  function(dl_dir) {
+    library(rFIA) 
+    #
+    dbp <- readFIA(dir = dl_dir,
+                   inMemory = FALSE)
+    carbon(dbp, 
+           byPlot = TRUE, 
+           byPool = TRUE, 
+           nCores = 1)
+  },
+  args = list(dl_dir = dl_dir)
+)
+
+# timestamp at END of carbon calculations
+t1 <- Sys.time()
+
+# time difference using SERIAL processing
+t1 - t0
+
+rm(ccs) # remove the uneccessary, test object
+```
+
+
+
+
+
+FROM ChatGPT: "In the rFIA big-data vignette, the authors demonstrate running carbon() for the entire continental United States on a 16 GB machine by working with a Remote.FIA.Database and aggregating to the estimation-unit level. In my workflow I follow the same remote-database pattern and keep nCores = 1, but I compute plot-level carbon estimates rather than unit-level summaries. That requires building and holding much larger joined tables (PLOT–COND–TREE) in memory, which likely explains the ∼6 GB RAM spikes I observe even for a four-state region. On my machine this is still manageable, but anyone attempting plot-level estimates over much larger areas would either need more memory or a more RAM-efficient approach (e.g., rewriting the carbon calculations to stream or chunk the data, use an on-disk backend, or move the heavy joins and summaries into a more optimized language or framework, e.g. doing the filtering and joins in SQL)."
+
+
+
+
+
+
+
+
+## Join filtering variables/metadata to carbon table
+As with Module 01, we need to join some other variables from PLOT, COND, and PLOTGEOM tables to the carbon table. BUt unlike in that module, we don't already have those tables stored in RAM. Because those files are so large, we pointed `carbon()` to their location on disk, and it did the calculations without ever loading those tables into R objects.
+
+And since those tables are much larger this time, we again have to employ memory management tactics. This is because the process of reading the tables into the current working session ties up considerably more RAM than the final size of the tables once they're loaded in memory. The strategy I employ in this case is to use `callr::r` to load each table-by-state combination in a separate, one-off session.
+
+read.csv: 3.9 GiB to 8.9 GiB; 4.1 to 9.1; so at most 5 GiB spike, ~5 min
+read_csv: 4.2 GiB to 6.1; 4.5 to 7.2; so at most 2.7 GiB, ~28 sec
+fread: at most 0.1 GiB spike, ~14 sec and also the fastest
+
+```{r}
+t0 <- Sys.time()
+parts_readr   <- read_all_readr(states, carb_tbls, dl_dir, table_cols)
+t1 <- Sys.time()
+t1 - t0
+
+t0 <- Sys.time()
+parts_fread   <- read_all_fread(states, carb_tbls, dl_dir, table_cols)
+t1 <- Sys.time()
+t1 - t0
+
+```
+
+
+```{r}
+FIADB  <- list()
+states <- c("NC","SC","GA","FL")
+
+## 1. Column spec per table
+table_cols <- list(
+  PLOT = c(
+    PLT_CN       = "CN",
+    STATECD      = "STATECD",
+    PREV_PLT_CN  = "PREV_PLT_CN",
+    CYCLE        = "CYCLE",
+    MEASYEAR     = "MEASYEAR",
+    MEASMON      = "MEASMON",
+    MEASDAY      = "MEASDAY",
+    LAT          = "LAT",
+    LON          = "LON",
+    KINDCD       = "KINDCD",
+    RDDISTCD     = "RDDISTCD",
+    ELEV         = "ELEV"
+  ),
+  COND = c(
+    PLT_CN          = "PLT_CN",
+    STDORGCD        = "STDORGCD",
+    FORTYPCD        = "FORTYPCD",
+    OWNGRPCD        = "OWNGRPCD",
+    CONDPROP_UNADJ  = "CONDPROP_UNADJ",
+    STDAGE          = "STDAGE",
+    SITECLCD        = "SITECLCD",
+    SLOPE           = "SLOPE"
+  ),
+  TREE = c(
+    PLT_CN   = "PLT_CN",
+    DIA      = "DIA",
+    SPCD     = "SPCD",
+    SPGRPCD  = "SPGRPCD",
+    STATUSCD = "STATUSCD",
+    TREECLCD = "TREECLCD"
+  ),
+  PLOTGEOM = c(
+    PLT_CN   = "CN",
+    ECOSUBCD = "ECOSUBCD"
+  )
+)
+```
+```{r}
+## 2. Generic reader: one callr session per (table, state)
+read_fiadb_table <- function(table_name, states, cols, dl_dir) {
+  bind_rows(lapply(states, function(st) {
+    file_name <- file.path(dl_dir, paste0(st, "_", table_name, ".csv"))
+
+    callr::r(
+      function(file_name, cols) {
+        df <- read.csv(file_name, stringsAsFactors = FALSE)
+        df <- df[unname(cols)]
+        names(df) <- names(cols)
+        df
+      },
+      args = list(file_name = file_name, cols = cols)
+    ) %>%
+      as_tibble()
+  }))
+}
+```
+```{r}
+## 3. Single call site for read_fiadb_table()
+
+t0 <- Sys.time()
+
+FIADB <- lapply(names(table_cols), function(tbl) {
+  read_fiadb_table(tbl, states, table_cols[[tbl]], dl_dir)
+})
+
+t1 <- Sys.time()
+
+t1 - t0
+
+names(FIADB) <- names(table_cols)
+```
+```{r}
+## 4. Table-specific mutate logic afterward
+
+FIADB$PLOT <- FIADB$PLOT %>%
+  mutate(
+    meas_date = as.Date(
+      paste(MEASYEAR, MEASMON, MEASDAY, sep = "-"),
+      format = "%Y-%m-%d"
+    )
+  )
+
+FIADB$COND <- FIADB$COND %>%
+  mutate(
+    ownership_class = case_when(
+      OWNGRPCD > 40 ~ "Private",
+      TRUE          ~ "Public"
+    )
+  )
+
+FIADB$PLOTGEOM <- FIADB$PLOTGEOM %>%
+  mutate(
+    eco_section  = gsub("[a-z]$", "", ECOSUBCD),
+    eco_province = gsub("[A-Z][a-z]$", "", ECOSUBCD)
+  )
+
+## FIADB$TREE stays as read
+```
+
+
+# CONCLUSION
